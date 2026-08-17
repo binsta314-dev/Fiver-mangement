@@ -2,42 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 function SellerProfile() {
   const { id } = useParams();
   const [seller, setSeller] = useState(null);
   const [orders, setOrders] = useState([]);
 
-  useEffect(() => {
-    loadProfile();
-  }, [id]);
+  useEffect(() => { loadProfile(); }, [id]);
 
   const loadProfile = async () => {
-    if (window.electronAPI) {
-      const allSellers = await window.electronAPI.getSellers();
-      const currentSeller = allSellers.find(s => s.id === parseInt(id));
-      setSeller(currentSeller);
+    const { data: s } = await supabase.from('sellers').select('*').eq('id', id).single();
+    setSeller(s);
 
-      const allOrders = await window.electronAPI.getOrders();
-      const sellerOrders = allOrders.filter(o => o.seller_id === parseInt(id));
-      setOrders(sellerOrders);
-    }
+    const { data: o } = await supabase
+      .from('orders')
+      .select(`*, sellers(name), buyers(name)`)
+      .eq('seller_id', id)
+      .order('order_date', { ascending: false });
+
+    setOrders((o || []).map(order => ({
+      ...order,
+      seller_name: order.sellers?.name || 'Unknown',
+      buyer_name: order.buyers?.name || 'Unknown'
+    })));
   };
 
-  if (!seller) {
-    return <div>Loading profile...</div>;
-  }
+  const handleStatusChange = async (orderId, newStatus) => {
+    await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    loadProfile();
+  };
+
+  if (!seller) return <div style={{ padding: '40px' }}>Loading...</div>;
 
   const totalOrders = orders.length;
-  const totalOrderPrice = orders.reduce((sum, order) => sum + order.order_price, 0);
-  const totalActualPrice = orders.reduce((sum, order) => sum + order.actual_price, 0);
+  const totalOrderPrice = orders.reduce((sum, o) => sum + o.order_price, 0);
+  const totalActualPrice = orders.reduce((sum, o) => sum + o.actual_price, 0);
 
-  const handleStatusChange = async (id, newStatus) => {
-    if (window.electronAPI) {
-      await window.electronAPI.updateOrderStatus(id, newStatus);
-      loadProfile(); // Refresh the list
-    }
-  };
+  const statusStyle = (status) => ({
+    padding: '4px 8px',
+    borderRadius: '4px',
+    border: '1px solid var(--fiverr-border)',
+    backgroundColor: status === 'Complete' ? '#e6f4ea' : status === 'In Progress' ? '#e8f0fe' : '#fef7e0',
+    color: status === 'Complete' ? '#137333' : status === 'In Progress' ? '#1967d2' : '#b06000',
+    fontWeight: 'bold',
+    fontSize: '12px',
+    cursor: 'pointer'
+  });
 
   return (
     <div>
@@ -45,7 +56,7 @@ function SellerProfile() {
         <Link to="/accounts" className="btn" style={{ backgroundColor: 'var(--fiverr-dark)', padding: '8px 12px' }}>
           <ArrowLeft size={18} />
         </Link>
-        <h1 className="page-title" style={{ margin: 0 }}>Seller Profile: {seller.name}</h1>
+        <h1 className="page-title" style={{ margin: 0 }}>Seller: {seller.name}</h1>
       </div>
 
       <div className="dashboard-stats">
@@ -83,18 +94,10 @@ function SellerProfile() {
                 <td>${o.order_price.toFixed(2)}</td>
                 <td style={{ color: 'var(--fiverr-green)', fontWeight: 'bold' }}>${o.actual_price.toFixed(2)}</td>
                 <td>
-                  <select 
-                    value={o.status || 'Pending'} 
+                  <select
+                    value={o.status || 'Pending'}
                     onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                    style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '4px',
-                      border: '1px solid var(--fiverr-border)',
-                      backgroundColor: o.status === 'Complete' ? '#e6f4ea' : o.status === 'In Progress' ? '#e8f0fe' : '#fef7e0',
-                      color: o.status === 'Complete' ? '#137333' : o.status === 'In Progress' ? '#1967d2' : '#b06000',
-                      fontWeight: 'bold',
-                      fontSize: '12px'
-                    }}
+                    style={statusStyle(o.status)}
                   >
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
@@ -104,9 +107,7 @@ function SellerProfile() {
               </tr>
             ))}
             {orders.length === 0 && (
-              <tr>
-                <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this seller.</td>
-              </tr>
+              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this seller.</td></tr>
             )}
           </tbody>
         </table>

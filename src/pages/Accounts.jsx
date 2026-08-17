@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 function Accounts() {
   const [sellers, setSellers] = useState([]);
   const [buyers, setBuyers] = useState([]);
-  
   const [newSeller, setNewSeller] = useState('');
   const [newBuyer, setNewBuyer] = useState('');
 
@@ -14,79 +14,57 @@ function Accounts() {
   }, []);
 
   const loadAccounts = async () => {
-    if (window.electronAPI) {
-      const s = await window.electronAPI.getSellers();
-      const b = await window.electronAPI.getBuyers();
-      setSellers(s);
-      setBuyers(b);
-    }
+    const { data: s } = await supabase.from('sellers').select('*').order('id');
+    const { data: b } = await supabase.from('buyers').select('*').order('id');
+    setSellers(s || []);
+    setBuyers(b || []);
   };
 
   const handleAddSeller = async (e) => {
     e.preventDefault();
     if (!newSeller.trim()) return;
-    if (window.electronAPI) {
-      await window.electronAPI.addSeller(newSeller);
-      setNewSeller('');
-      loadAccounts();
-    }
+    const { error } = await supabase.from('sellers').insert({ name: newSeller.trim() });
+    if (error) { alert('Error: ' + error.message); return; }
+    setNewSeller('');
+    loadAccounts();
   };
 
   const handleDeleteSeller = async (id) => {
-    if (window.confirm('Are you sure? This will delete all orders associated with this seller as well.')) {
-      if (window.electronAPI) {
-        await window.electronAPI.deleteSeller(id);
-        loadAccounts();
-      }
-    }
+    if (!window.confirm('Are you sure? All orders for this seller will also be deleted.')) return;
+    await supabase.from('sellers').delete().eq('id', id);
+    loadAccounts();
   };
 
   const handleAddBuyer = async (e) => {
     e.preventDefault();
     if (!newBuyer.trim()) return;
-    if (window.electronAPI) {
-      await window.electronAPI.addBuyer(newBuyer);
-      setNewBuyer('');
-      loadAccounts();
-    }
+    const { error } = await supabase.from('buyers').insert({ name: newBuyer.trim() });
+    if (error) { alert('Error: ' + error.message); return; }
+    setNewBuyer('');
+    loadAccounts();
   };
 
   const handleDeleteBuyer = async (id) => {
-    if (window.confirm('Are you sure? This will delete all orders associated with this buyer as well.')) {
-      if (window.electronAPI) {
-        await window.electronAPI.deleteBuyer(id);
-        loadAccounts();
-      }
-    }
+    if (!window.confirm('Are you sure? All orders for this buyer will also be deleted.')) return;
+    await supabase.from('buyers').delete().eq('id', id);
+    loadAccounts();
   };
 
   return (
     <div>
       <h1 className="page-title">Accounts Management</h1>
-      
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        
-        {/* Sellers Section */}
+
+        {/* Sellers */}
         <div className="card">
           <h3>Seller Accounts</h3>
           <form onSubmit={handleAddSeller} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <input 
-              type="text" 
-              className="form-control" 
-              placeholder="New Seller Name" 
-              value={newSeller} 
-              onChange={e => setNewSeller(e.target.value)} 
-            />
+            <input type="text" className="form-control" placeholder="New Seller Name" value={newSeller} onChange={e => setNewSeller(e.target.value)} />
             <button type="submit" className="btn">Add</button>
           </form>
-          
           <table>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>ID</th><th>Name</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {sellers.map(s => (
@@ -108,27 +86,16 @@ function Accounts() {
           </table>
         </div>
 
-        {/* Buyers Section */}
+        {/* Buyers */}
         <div className="card">
           <h3>Buyer Accounts</h3>
           <form onSubmit={handleAddBuyer} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <input 
-              type="text" 
-              className="form-control" 
-              placeholder="New Buyer Name" 
-              value={newBuyer} 
-              onChange={e => setNewBuyer(e.target.value)} 
-            />
+            <input type="text" className="form-control" placeholder="New Buyer Name" value={newBuyer} onChange={e => setNewBuyer(e.target.value)} />
             <button type="submit" className="btn">Add</button>
           </form>
-          
           <table>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>ID</th><th>Name</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {buyers.map(b => (

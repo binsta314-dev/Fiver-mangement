@@ -1,49 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from 'date-fns';
-
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 function Dashboard() {
   const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState('all'); // all, day, week, month, year
-  
+  const [filter, setFilter] = useState('all');
+
   useEffect(() => {
     loadOrders();
   }, []);
 
   const loadOrders = async () => {
-    if (window.electronAPI) {
-      const data = await window.electronAPI.getOrders();
-      setOrders(data);
-    }
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`*, sellers(name), buyers(name)`)
+      .order('order_date', { ascending: false });
+    if (error) { console.error(error); return; }
+    setOrders(data.map(o => ({
+      ...o,
+      seller_name: o.sellers?.name || 'Unknown',
+      buyer_name: o.buyers?.name || 'Unknown'
+    })));
   };
 
   const getFilteredOrders = () => {
     const now = new Date();
     return orders.filter(order => {
       const orderDate = parseISO(order.order_date);
-      switch(filter) {
-        case 'day':
-          return isWithinInterval(orderDate, { start: startOfDay(now), end: endOfDay(now) });
-        case 'week':
-          return isWithinInterval(orderDate, { start: startOfWeek(now), end: endOfWeek(now) });
-        case 'month':
-          return isWithinInterval(orderDate, { start: startOfMonth(now), end: endOfMonth(now) });
-        case 'year':
-          return isWithinInterval(orderDate, { start: startOfYear(now), end: endOfYear(now) });
-        default:
-          return true;
+      switch (filter) {
+        case 'day': return isWithinInterval(orderDate, { start: startOfDay(now), end: endOfDay(now) });
+        case 'week': return isWithinInterval(orderDate, { start: startOfWeek(now), end: endOfWeek(now) });
+        case 'month': return isWithinInterval(orderDate, { start: startOfMonth(now), end: endOfMonth(now) });
+        case 'year': return isWithinInterval(orderDate, { start: startOfYear(now), end: endOfYear(now) });
+        default: return true;
       }
     });
   };
 
   const filteredOrders = getFilteredOrders();
-  
   const totalOrders = filteredOrders.length;
-  const totalOrderPrice = filteredOrders.reduce((sum, order) => sum + order.order_price, 0);
-  const totalActualPrice = filteredOrders.reduce((sum, order) => sum + order.actual_price, 0);
+  const totalOrderPrice = filteredOrders.reduce((sum, o) => sum + o.order_price, 0);
+  const totalActualPrice = filteredOrders.reduce((sum, o) => sum + o.actual_price, 0);
 
-  // Group by seller_id
   const sellerStats = filteredOrders.reduce((acc, order) => {
     if (!acc[order.seller_id]) {
       acc[order.seller_id] = { name: order.seller_name, count: 0, orderPrice: 0, actualPrice: 0 };
@@ -54,16 +53,26 @@ function Dashboard() {
     return acc;
   }, {});
 
+  const filters = [
+    { key: 'all', label: 'All Time' },
+    { key: 'day', label: 'Today' },
+    { key: 'week', label: 'This Week' },
+    { key: 'month', label: 'This Month' },
+    { key: 'year', label: 'This Year' },
+  ];
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
-      
-      <div className="card" style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
-        <button className={filter === 'all' ? 'btn' : 'btn'} style={{ backgroundColor: filter === 'all' ? 'var(--fiverr-green)' : '#ccc' }} onClick={() => setFilter('all')}>All Time</button>
-        <button className={filter === 'day' ? 'btn' : 'btn'} style={{ backgroundColor: filter === 'day' ? 'var(--fiverr-green)' : '#ccc' }} onClick={() => setFilter('day')}>Today</button>
-        <button className={filter === 'week' ? 'btn' : 'btn'} style={{ backgroundColor: filter === 'week' ? 'var(--fiverr-green)' : '#ccc' }} onClick={() => setFilter('week')}>This Week</button>
-        <button className={filter === 'month' ? 'btn' : 'btn'} style={{ backgroundColor: filter === 'month' ? 'var(--fiverr-green)' : '#ccc' }} onClick={() => setFilter('month')}>This Month</button>
-        <button className={filter === 'year' ? 'btn' : 'btn'} style={{ backgroundColor: filter === 'year' ? 'var(--fiverr-green)' : '#ccc' }} onClick={() => setFilter('year')}>This Year</button>
+
+      <div className="card" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '30px' }}>
+        {filters.map(f => (
+          <button key={f.key} className="btn"
+            style={{ backgroundColor: filter === f.key ? 'var(--fiverr-green)' : '#ccc' }}
+            onClick={() => setFilter(f.key)}>
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="dashboard-stats">
@@ -106,9 +115,7 @@ function Dashboard() {
               </tr>
             ))}
             {Object.keys(sellerStats).length === 0 && (
-              <tr>
-                <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this period.</td>
-              </tr>
+              <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this period.</td></tr>
             )}
           </tbody>
         </table>
