@@ -112,7 +112,7 @@ function Orders() {
             <input type="number" step="0.01" className="form-control" name="order_price" value={formData.order_price} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label>Actual Earnings ($)</label>
+            <label>Actual Order Price ($)</label>
             <input type="number" step="0.01" className="form-control" name="actual_price" value={formData.actual_price} onChange={handleChange} required />
           </div>
           <div className="form-group">
@@ -134,7 +134,7 @@ function Orders() {
               <th>Seller</th>
               <th>Buyer</th>
               <th>Order Price</th>
-              <th>Actual Earnings</th>
+              <th>Actual Order Price</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>

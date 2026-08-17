@@ -40,7 +40,7 @@ function SellerProfile() {
   const totalActualPrice = orders.reduce((sum, o) => sum + o.actual_price, 0);
 
   const statusStyle = (status) => ({
-    padding: '4px 8px',
+    padding: '4px 10px',
     borderRadius: '4px',
     border: '1px solid var(--fiverr-border)',
     backgroundColor: status === 'Complete' ? '#e6f4ea' : status === 'In Progress' ? '#e8f0fe' : '#fef7e0',
@@ -52,6 +52,7 @@ function SellerProfile() {
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px' }}>
         <Link to="/accounts" className="btn" style={{ backgroundColor: 'var(--fiverr-dark)', padding: '8px 12px' }}>
           <ArrowLeft size={18} />
@@ -59,6 +60,7 @@ function SellerProfile() {
         <h1 className="page-title" style={{ margin: 0 }}>Seller: {seller.name}</h1>
       </div>
 
+      {/* Stat Cards — Total Orders first, then Order Value, then Actual Order Price */}
       <div className="dashboard-stats">
         <div className="stat-card">
           <span className="stat-title">Total Orders</span>
@@ -68,21 +70,22 @@ function SellerProfile() {
           <span className="stat-title">Total Order Value</span>
           <span className="stat-value">${totalOrderPrice.toFixed(2)}</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-title">Actual Earnings</span>
-          <span className="stat-value">${totalActualPrice.toFixed(2)}</span>
+        <div className="stat-card" style={{ borderTop: '3px solid var(--fiverr-green)' }}>
+          <span className="stat-title">Actual Order Price</span>
+          <span className="stat-value" style={{ color: 'var(--fiverr-green)' }}>${totalActualPrice.toFixed(2)}</span>
         </div>
       </div>
 
+      {/* Orders Table */}
       <div className="card">
-        <h3>Order History for {seller.name}</h3>
+        <h3>Orders for <span style={{ color: 'var(--fiverr-green)' }}>{seller.name}</span></h3>
         <table>
           <thead>
             <tr>
               <th>Date</th>
               <th>Buyer Account</th>
               <th>Order Price</th>
-              <th>Actual Earnings</th>
+              <th>Actual Order Price</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -97,7 +100,7 @@ function SellerProfile() {
                   <select
                     value={o.status || 'Pending'}
                     onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                    style={statusStyle(o.status)}
+                    style={statusStyle(o.status || 'Pending')}
                   >
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
@@ -107,7 +110,11 @@ function SellerProfile() {
               </tr>
             ))}
             {orders.length === 0 && (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this seller.</td></tr>
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#74767e' }}>
+                  No orders found for this seller.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

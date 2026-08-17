@@ -43,13 +43,26 @@ function Dashboard() {
   const totalOrderPrice = filteredOrders.reduce((sum, o) => sum + o.order_price, 0);
   const totalActualPrice = filteredOrders.reduce((sum, o) => sum + o.actual_price, 0);
 
+  // Group by seller_id with status counts
   const sellerStats = filteredOrders.reduce((acc, order) => {
     if (!acc[order.seller_id]) {
-      acc[order.seller_id] = { name: order.seller_name, count: 0, orderPrice: 0, actualPrice: 0 };
+      acc[order.seller_id] = {
+        name: order.seller_name,
+        count: 0,
+        orderPrice: 0,
+        actualPrice: 0,
+        pending: 0,
+        inProgress: 0,
+        complete: 0
+      };
     }
     acc[order.seller_id].count += 1;
     acc[order.seller_id].orderPrice += order.order_price;
     acc[order.seller_id].actualPrice += order.actual_price;
+    const s = order.status || 'Pending';
+    if (s === 'Pending') acc[order.seller_id].pending += 1;
+    else if (s === 'In Progress') acc[order.seller_id].inProgress += 1;
+    else if (s === 'Complete') acc[order.seller_id].complete += 1;
     return acc;
   }, {});
 
@@ -61,10 +74,25 @@ function Dashboard() {
     { key: 'year', label: 'This Year' },
   ];
 
+  const statusBadge = (count, bg, color, label) =>
+    count > 0 ? (
+      <span style={{
+        display: 'inline-block',
+        padding: '2px 8px',
+        borderRadius: '20px',
+        backgroundColor: bg,
+        color,
+        fontWeight: 'bold',
+        fontSize: '11px',
+        marginRight: '4px'
+      }}>{label}: {count}</span>
+    ) : null;
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
 
+      {/* Filter Buttons */}
       <div className="card" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '30px' }}>
         {filters.map(f => (
           <button key={f.key} className="btn"
@@ -75,6 +103,7 @@ function Dashboard() {
         ))}
       </div>
 
+      {/* Summary Stats */}
       <div className="dashboard-stats">
         <div className="stat-card">
           <span className="stat-title">Total Orders</span>
@@ -85,20 +114,22 @@ function Dashboard() {
           <span className="stat-value">${totalOrderPrice.toFixed(2)}</span>
         </div>
         <div className="stat-card">
-          <span className="stat-title">Actual Earnings</span>
+          <span className="stat-title">Actual Order Price</span>
           <span className="stat-value">${totalActualPrice.toFixed(2)}</span>
         </div>
       </div>
 
+      {/* Per-Seller Table */}
       <div className="card">
         <h3>Performance by Seller</h3>
         <table>
           <thead>
             <tr>
               <th>Seller Account</th>
-              <th>Orders</th>
+              <th>Total Orders</th>
               <th>Order Value</th>
-              <th>Actual Earnings</th>
+              <th>Actual Order Price</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -109,13 +140,19 @@ function Dashboard() {
                     {stats.name}
                   </Link>
                 </td>
-                <td>{stats.count}</td>
+                <td><strong>{stats.count}</strong></td>
                 <td>${stats.orderPrice.toFixed(2)}</td>
                 <td style={{ color: 'var(--fiverr-green)', fontWeight: 'bold' }}>${stats.actualPrice.toFixed(2)}</td>
+                <td>
+                  {statusBadge(stats.pending, '#fef7e0', '#b06000', 'Pending')}
+                  {statusBadge(stats.inProgress, '#e8f0fe', '#1967d2', 'In Progress')}
+                  {statusBadge(stats.complete, '#e6f4ea', '#137333', 'Complete')}
+                  {stats.pending === 0 && stats.inProgress === 0 && stats.complete === 0 && '—'}
+                </td>
               </tr>
             ))}
             {Object.keys(sellerStats).length === 0 && (
-              <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this period.</td></tr>
+              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No orders found for this period.</td></tr>
             )}
           </tbody>
         </table>
