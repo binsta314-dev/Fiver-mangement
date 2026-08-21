@@ -51,6 +51,7 @@ function Dashboard() {
         count: 0,
         orderPrice: 0,
         actualPrice: 0,
+        todo: 0,
         pending: 0,
         inProgress: 0,
         complete: 0
@@ -60,7 +61,8 @@ function Dashboard() {
     acc[order.seller_id].orderPrice += order.order_price;
     acc[order.seller_id].actualPrice += order.actual_price;
     const s = order.status || 'Pending';
-    if (s === 'Pending') acc[order.seller_id].pending += 1;
+    if (s === 'To Do') acc[order.seller_id].todo += 1;
+    else if (s === 'Pending') acc[order.seller_id].pending += 1;
     else if (s === 'In Progress') acc[order.seller_id].inProgress += 1;
     else if (s === 'Complete') acc[order.seller_id].complete += 1;
     return acc;
@@ -144,10 +146,11 @@ function Dashboard() {
                 <td>${stats.orderPrice.toFixed(2)}</td>
                 <td style={{ color: 'var(--fiverr-green)', fontWeight: 'bold' }}>${stats.actualPrice.toFixed(2)}</td>
                 <td>
+                  {statusBadge(stats.todo, '#f3e8fd', '#7b1fa2', 'To Do')}
                   {statusBadge(stats.pending, '#fef7e0', '#b06000', 'Pending')}
                   {statusBadge(stats.inProgress, '#e8f0fe', '#1967d2', 'In Progress')}
                   {statusBadge(stats.complete, '#e6f4ea', '#137333', 'Complete')}
-                  {stats.pending === 0 && stats.inProgress === 0 && stats.complete === 0 && '—'}
+                  {stats.todo === 0 && stats.pending === 0 && stats.inProgress === 0 && stats.complete === 0 && '—'}
                 </td>
               </tr>
             ))}

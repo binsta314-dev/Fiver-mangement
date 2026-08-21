@@ -67,16 +67,54 @@ function Orders() {
     loadData();
   };
 
-  const statusStyle = (status) => ({
-    padding: '4px 8px',
-    borderRadius: '4px',
-    border: '1px solid var(--fiverr-border)',
-    backgroundColor: status === 'Complete' ? '#e6f4ea' : status === 'In Progress' ? '#e8f0fe' : '#fef7e0',
-    color: status === 'Complete' ? '#137333' : status === 'In Progress' ? '#1967d2' : '#b06000',
-    fontWeight: 'bold',
-    fontSize: '12px',
-    cursor: 'pointer'
-  });
+  const statusStyle = (status) => {
+    switch (status) {
+      case 'To Do':
+        return {
+          padding: '4px 8px',
+          borderRadius: '4px',
+          border: '1px solid #e1bee7',
+          backgroundColor: '#f3e8fd',
+          color: '#7b1fa2',
+          fontWeight: 'bold',
+          fontSize: '12px',
+          cursor: 'pointer'
+        };
+      case 'Complete':
+        return {
+          padding: '4px 8px',
+          borderRadius: '4px',
+          border: '1px solid #ceead6',
+          backgroundColor: '#e6f4ea',
+          color: '#137333',
+          fontWeight: 'bold',
+          fontSize: '12px',
+          cursor: 'pointer'
+        };
+      case 'In Progress':
+        return {
+          padding: '4px 8px',
+          borderRadius: '4px',
+          border: '1px solid #d2e3fc',
+          backgroundColor: '#e8f0fe',
+          color: '#1967d2',
+          fontWeight: 'bold',
+          fontSize: '12px',
+          cursor: 'pointer'
+        };
+      default: // Pending
+        return {
+          padding: '4px 8px',
+          borderRadius: '4px',
+          border: '1px solid #feefc3',
+          backgroundColor: '#fef7e0',
+          color: '#b06000',
+          fontWeight: 'bold',
+          fontSize: '12px',
+          cursor: 'pointer'
+        };
+    }
+  };
 
   return (
     <div>
@@ -102,6 +140,7 @@ function Orders() {
           <div className="form-group">
             <label>Status</label>
             <select className="form-control" name="status" value={formData.status} onChange={handleChange}>
+              <option value="To Do">To Do</option>
               <option value="Pending">Pending</option>
               <option value="In Progress">In Progress</option>
               <option value="Complete">Complete</option>
@@ -153,6 +192,7 @@ function Orders() {
                     onChange={(e) => handleStatusChange(o.id, e.target.value)}
                     style={statusStyle(o.status)}
                   >
+                    <option value="To Do">To Do</option>
                     <option value="Pending">Pending</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Complete">Complete</option>
